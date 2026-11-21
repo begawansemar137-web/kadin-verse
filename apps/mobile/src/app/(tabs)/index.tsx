@@ -5,6 +5,7 @@ import { useSession } from '@/features/auth/session-context';
 import { HomeTile } from '@/features/home/components/HomeTile';
 import { canAccess } from '@/navigation/access';
 import { copy } from '@/shared/copy/id';
+import { MockBadge } from '@/shared/ui/MockBadge';
 import { Screen } from '@/shared/ui/Screen';
 
 const HomeScreen = () => {
@@ -16,6 +17,7 @@ const HomeScreen = () => {
 
   return (
     <Screen title={copy.home.heading}>
+      {session.status === 'member' && session.isMock ? <MockBadge /> : null}
       <Text style={styles.greeting}>{greeting}</Text>
       <HomeTile label={copy.home.tileNews} href="/news" />
       <HomeTile label={copy.home.tileServices} href="/services" />

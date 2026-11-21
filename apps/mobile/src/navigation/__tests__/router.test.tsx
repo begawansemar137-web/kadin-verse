@@ -92,6 +92,13 @@ describe('B-001 navigation shell', () => {
     expect(screen).toHavePathname('/');
   });
 
+  it('dot-segment link /news/../card resolves to /card and stays gated for guests', async () => {
+    // URL parsing collapses `..` before routing, so this never reaches news/[id].
+    await open('/news/../card');
+    expect(screen).toHavePathname('/sign-in');
+    expect(screen.queryByText(copy.card.placeholder)).toBeNull();
+  });
+
   it('unknown route shows not-found with a way home (no dead end)', async () => {
     await open('/does-not-exist');
     expect(screen.getByRole('header', { name: copy.notFound.heading })).toBeTruthy();
@@ -135,5 +142,24 @@ describe('session ends while on a protected route', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'probe-sign-out' }));
     expect(screen).toHavePathname('/sign-in');
     expect(screen.queryByText(copy.card.placeholder)).toBeNull();
+  });
+});
+
+describe('mock member content is labelled on Beranda', () => {
+  const MemberLayout = () => (
+    <SessionProvider initialSession={MOCK_MEMBER}>
+      <Stack />
+    </SessionProvider>
+  );
+
+  it('shows the MOCK badge next to the demo member greeting', async () => {
+    await renderRouter({ _layout: MemberLayout, index: Home }, { initialUrl: '/' });
+    expect(screen.getByText(copy.home.greetingMember('Anggota Demo'))).toBeTruthy();
+    expect(screen.getByLabelText(copy.common.mockBadgeA11y)).toBeTruthy();
+  });
+
+  it('shows no MOCK badge for a guest (nothing synthetic on screen)', async () => {
+    await open('/');
+    expect(screen.queryByLabelText(copy.common.mockBadgeA11y)).toBeNull();
   });
 });
