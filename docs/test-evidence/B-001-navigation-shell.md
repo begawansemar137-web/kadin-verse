@@ -33,7 +33,7 @@ Final run, after all changes including the review fix pass (typecheck, lint, tes
 |---|---|---|
 | `pnpm typecheck` | PASS (exit 0) | `packages/design-tokens typecheck: Done` · `apps/mobile typecheck: Done` |
 | `pnpm lint` | PASS (exit 0) | `apps/mobile lint$ expo lint` · `apps/mobile lint: Done` |
-| `pnpm test` | PASS (exit 0) | `Test Suites: 10 passed, 10 total` · `Tests: 82 passed, 82 total` (after the review fix pass below) |
+| `pnpm test` | PASS (exit 0) | `Test Suites: 11 passed, 11 total` · `Tests: 85 passed, 85 total` (after the review fix pass and the error-boundary follow-up below) |
 | `npx expo-doctor` (apps/mobile) | PASS (exit 0) | `Running 20 checks on your project...` · `20/20 checks passed. No issues detected!` |
 | `npx expo export --platform android` | PASS (exit 0) | `› android bundles (1): _expo/static/js/android/entry-….hbc (2.9MB)`. Output was written outside the repo, because `apps/mobile/dist` is not git-ignored. Local bundle only; not a native build or a deploy. |
 | Manual a11y pass (VoiceOver/TalkBack, 200% font, guest → card → gate → mock sign-in) | **NOT RUN** | No simulator or device was driven in this session. Reproduce with `cd apps/mobile && npx expo start`, then follow plan Task 6 step 2. |
@@ -51,6 +51,7 @@ Final run, after all changes including the review fix pass (typecheck, lint, tes
 | Session ends on protected route | router.test › redirects to the gate instead of leaving member content on screen |
 | PRD §8 48dp targets, scalable text | Button.test (minHeight/minWidth ≥ 48, no fixed height, allowFontScaling not false). Style-level only; real 200% rendering of the tab bar and headers is part of the manual pass (**NOT RUN**) |
 | Mock content visibly labelled | MockBadge.test; router.test › MOCK badge on Beranda for the demo member, none for guests; card shows the badge |
+| No blank screen on a crash | error-boundary.test › safe message replaces a crashed screen; raw error never shown; retry recovers |
 | Demo sign-in off in release builds | flags.test › `resolveMockAuth` (on in `__DEV__`; release needs `EXPO_PUBLIC_MOCK_AUTH=true`) |
 | Contrast (WCAG AA) on placeholder tokens | tokens-contrast.test |
 
@@ -63,3 +64,13 @@ A fresh reviewer read the whole branch (68edc77..4f4ef7d). It found nothing Crit
 | `mockAuth` was hard-coded `true`, so a release build would ship the demo sign-in | `flags.test.ts` › resolveMockAuth (3 tests) | `TypeError: (0 , _flags.resolveMockAuth) is not a function` → `Tests: 3 passed, 3 total` |
 | Beranda showed "Halo, Anggota Demo" with no MOCK badge | router.test › shows the MOCK badge next to the demo member greeting | `Unable to find an element with accessibility label: Data contoh, bukan data resmi` → `Tests: 12 passed, 12 total` |
 | This document overstated `/news/../card` coverage | router.test › dot-segment link stays gated | Characterization test: it pins existing, safe behaviour and passed on its first run. The fix is the corrected AC-004-03 row above. |
+
+## Follow-up: app-wide error boundary
+
+This ports the earlier `AppShell` idea as Expo Router's root-layout `ErrorBoundary` export (`src/app/_layout.tsx` → `src/shared/ui/AppErrorFallback.tsx`). The raw error is never rendered or logged by app code; crash reporting is left to B-008.
+
+| Step | Command → result |
+|---|---|
+| RED | `jest src/navigation/__tests__/error-boundary.test.tsx` → 3 failed; the thrown `internal-detail-do-not-show-42` escaped uncaught (the first attempt failed on test setup, because the root layout anchors on `(tabs)`; this was fixed in the test's route map) |
+| GREEN | same → `Tests: 3 passed, 3 total` |
+| Gates | `pnpm typecheck` Done · `pnpm lint` Done · `pnpm test` → `Tests: 85 passed, 85 total` |
