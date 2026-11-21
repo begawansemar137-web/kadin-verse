@@ -1,40 +1,52 @@
 import type { ReactNode } from 'react';
-import { act, renderHook } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 
-import { MOCK_MEMBER } from '@/features/auth/domain/session';
+import type { AuthService } from '@/features/auth/domain/auth-service';
 import { SessionProvider, useSession } from '@/features/auth/session-context';
+import { createTestAuthService } from '@/features/auth/testing/auth-fixtures';
 
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <SessionProvider>{children}</SessionProvider>
-);
+const MEMBER = { status: 'member', displayName: 'Anggota Demo', isMock: true };
 
-describe('SessionProvider (mock)', () => {
-  it('starts as guest', async () => {
-    const { result } = await renderHook(() => useSession(), { wrapper });
+const wrapperFor = (service: AuthService) => {
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <SessionProvider service={service}>{children}</SessionProvider>
+  );
+  return Wrapper;
+};
+
+describe('SessionProvider', () => {
+  it('restores on mount: guest when nothing is stored', async () => {
+    const { result } = await renderHook(() => useSession(), { wrapper: wrapperFor(createTestAuthService()) });
+    await waitFor(() => expect(result.current.session).toEqual({ status: 'guest' }));
+    expect(result.current.canSignIn).toBe(true);
+  });
+
+  it('restores a stored member session on mount', async () => {
+    const service = createTestAuthService({ signedIn: true });
+    const { result } = await renderHook(() => useSession(), { wrapper: wrapperFor(service) });
+    await waitFor(() => expect(result.current.session).toEqual(MEMBER));
+  });
+
+  it('signs in and out through the service', async () => {
+    const { result } = await renderHook(() => useSession(), { wrapper: wrapperFor(createTestAuthService()) });
+    await waitFor(() => expect(result.current.session.status).toBe('guest'));
+
+    await act(async () => {
+      expect(await result.current.signIn()).toBe('ok');
+    });
+    expect(result.current.session).toEqual(MEMBER);
+
+    await act(async () => {
+      await result.current.signOut();
+    });
     expect(result.current.session).toEqual({ status: 'guest' });
   });
 
-  it('signs in as the mock member and signs out again', async () => {
-    const { result } = await renderHook(() => useSession(), { wrapper });
-
-    await act(async () => {
-      result.current.signInMock();
-    });
-    expect(result.current.session).toEqual(MOCK_MEMBER);
-
-    await act(async () => {
-      result.current.signOut();
-    });
-    expect(result.current.session).toEqual({ status: 'guest' });
-  });
-
-  it('honours initialSession', async () => {
-    const { result } = await renderHook(() => useSession(), {
-      wrapper: ({ children }: { children: ReactNode }) => (
-        <SessionProvider initialSession={MOCK_MEMBER}>{children}</SessionProvider>
-      ),
-    });
-    expect(result.current.session).toEqual(MOCK_MEMBER);
+  it('exposes no credentials through the hook', async () => {
+    const service = createTestAuthService({ signedIn: true });
+    const { result } = await renderHook(() => useSession(), { wrapper: wrapperFor(service) });
+    await waitFor(() => expect(result.current.session.status).toBe('member'));
+    expect(JSON.stringify(result.current)).not.toMatch(/fake-(access|refresh)/);
   });
 
   it('throws a clear error outside the provider', async () => {

@@ -44,6 +44,12 @@ export const copy = {
     heading: 'Masuk ke akun',
     explainer: 'Metode masuk resmi belum ditetapkan. Gunakan akun demo untuk mencoba aplikasi.',
     mockButton: 'Masuk sebagai anggota demo',
+    expired: 'Sesi Anda telah berakhir. Silakan masuk kembali.',
+    failed: {
+      cancelled: 'Proses masuk dibatalkan.',
+      network: 'Tidak dapat terhubung. Periksa koneksi lalu coba lagi.',
+      rejected: 'Masuk tidak berhasil. Silakan coba lagi.',
+    },
   },
   notFound: { heading: 'Halaman tidak ditemukan' },
   error: {

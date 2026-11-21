@@ -4,12 +4,21 @@ import { color, fontSize } from '@kadin/design-tokens';
 
 import { useSession } from '@/features/auth/session-context';
 import { copy } from '@/shared/copy/id';
+import { AsyncStateView } from '@/shared/ui/AsyncStateView';
 import { Button } from '@/shared/ui/Button';
 import { MockBadge } from '@/shared/ui/MockBadge';
 import { Screen } from '@/shared/ui/Screen';
 
 const AccountScreen = () => {
   const { session, signOut } = useSession();
+
+  if (session.status === 'restoring') {
+    return (
+      <Screen title={copy.account.heading}>
+        <AsyncStateView state={{ status: 'loading' }} onRetry={() => undefined} emptyMessage="" renderSuccess={() => null} />
+      </Screen>
+    );
+  }
 
   if (session.status === 'guest') {
     return (
@@ -25,10 +34,10 @@ const AccountScreen = () => {
 
   return (
     <Screen title={copy.account.heading}>
-      <MockBadge />
+      {session.isMock ? <MockBadge /> : null}
       <Text style={styles.body}>{copy.home.greetingMember(session.displayName)}</Text>
       <Button label={copy.account.openCard} onPress={() => router.push('/card')} />
-      <Button variant="secondary" label={copy.account.signOut} onPress={signOut} />
+      <Button variant="secondary" label={copy.account.signOut} onPress={() => void signOut()} />
     </Screen>
   );
 };

@@ -25,4 +25,13 @@ describe('Button', () => {
     expect(style.height).toBeUndefined();
     expect(screen.getByText('Masuk').props.allowFontScaling).not.toBe(false);
   });
+
+  it('can be disabled: no press, announced as disabled', async () => {
+    const onPress = jest.fn();
+    await render(<Button label="Kirim" onPress={onPress} disabled />);
+    const button = screen.getByRole('button', { name: 'Kirim' });
+    expect(button).toBeDisabled();
+    await fireEvent.press(button);
+    expect(onPress).not.toHaveBeenCalled();
+  });
 });
