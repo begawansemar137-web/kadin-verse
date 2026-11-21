@@ -1,28 +1,32 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 
-import { GUEST, MOCK_MEMBER, type Session } from './domain/session';
+import { createDefaultAuthService } from './default-auth-service';
+import type { AuthService, SignInOutcome } from './domain/auth-service';
+import type { Session } from './domain/session';
 
 type SessionContextValue = {
   session: Session;
-  signInMock: () => void;
-  signOut: () => void;
+  canSignIn: boolean;
+  signIn: () => Promise<SignInOutcome>;
+  signOut: () => Promise<void>;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
-type SessionProviderProps = { children: ReactNode; initialSession?: Session };
+type SessionProviderProps = { children: ReactNode; service?: AuthService };
 
-/** In-memory only: nothing is persisted, no tokens exist (AGENTS.md §6). */
-export const SessionProvider = ({ children, initialSession = GUEST }: SessionProviderProps) => {
-  const [session, setSession] = useState<Session>(initialSession);
+/** Binds AuthService to React. Only the token-free Session crosses this boundary (ADR-003 §2). */
+export const SessionProvider = ({ children, service: injected }: SessionProviderProps) => {
+  const [service] = useState(() => injected ?? createDefaultAuthService());
+  const session = useSyncExternalStore(service.subscribe, service.getSession);
+
+  useEffect(() => {
+    void service.restore();
+  }, [service]);
 
   const value = useMemo<SessionContextValue>(
-    () => ({
-      session,
-      signInMock: () => setSession(MOCK_MEMBER),
-      signOut: () => setSession(GUEST),
-    }),
-    [session],
+    () => ({ session, canSignIn: service.canSignIn, signIn: service.signIn, signOut: service.signOut }),
+    [session, service],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
