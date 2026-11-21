@@ -1,6 +1,6 @@
 import { Stack, router } from 'expo-router';
 import { renderRouter, screen } from 'expo-router/testing-library';
-import { act, fireEvent } from '@testing-library/react-native';
+import { act, fireEvent, waitFor } from '@testing-library/react-native';
 
 import * as RootLayout from '@/app/_layout';
 import * as TabsLayout from '@/app/(tabs)/_layout';
@@ -12,8 +12,10 @@ import * as NewsDetail from '@/app/news/[id]';
 import * as Card from '@/app/card';
 import * as SignIn from '@/app/sign-in';
 import * as NotFound from '@/app/+not-found';
-import { MOCK_MEMBER } from '@/features/auth/domain/session';
+import { createFakeAuthProvider } from '@/features/auth/data/fake-auth-provider';
+import { createMemoryCredentialStore } from '@/features/auth/data/memory-credential-store';
 import { SessionProvider, useSession } from '@/features/auth/session-context';
+import { createTestAuthService, FIXED_NOW, seededSession } from '@/features/auth/testing/auth-fixtures';
 import { copy } from '@/shared/copy/id';
 import { Button } from '@/shared/ui/Button';
 
@@ -34,6 +36,7 @@ const open = (initialUrl: string) => renderRouter(routes, { initialUrl });
 
 const signInFromGate = async () => {
   await fireEvent.press(screen.getByRole('button', { name: copy.signIn.mockButton }));
+  await waitFor(() => expect(screen).not.toHavePathname('/sign-in'));
 };
 
 describe('B-001 navigation shell', () => {
@@ -123,11 +126,11 @@ describe('B-001 navigation shell', () => {
 describe('session ends while on a protected route', () => {
   const SignOutProbe = () => {
     const { signOut } = useSession();
-    return <Button label="probe-sign-out" onPress={signOut} />;
+    return <Button label="probe-sign-out" onPress={() => void signOut()} />;
   };
 
   const ProbeLayout = () => (
-    <SessionProvider initialSession={MOCK_MEMBER}>
+    <SessionProvider service={createTestAuthService({ signedIn: true })}>
       <Stack />
       <SignOutProbe />
     </SessionProvider>
@@ -138,7 +141,7 @@ describe('session ends while on a protected route', () => {
       { _layout: ProbeLayout, card: Card, 'sign-in': SignIn, index: Home },
       { initialUrl: '/card' },
     );
-    expect(screen.getByText(copy.card.placeholder)).toBeTruthy();
+    expect(await screen.findByText(copy.card.placeholder)).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: 'probe-sign-out' }));
     expect(screen).toHavePathname('/sign-in');
     expect(screen.queryByText(copy.card.placeholder)).toBeNull();
@@ -147,19 +150,68 @@ describe('session ends while on a protected route', () => {
 
 describe('mock member content is labelled on Beranda', () => {
   const MemberLayout = () => (
-    <SessionProvider initialSession={MOCK_MEMBER}>
+    <SessionProvider service={createTestAuthService({ signedIn: true })}>
       <Stack />
     </SessionProvider>
   );
 
   it('shows the MOCK badge next to the demo member greeting', async () => {
     await renderRouter({ _layout: MemberLayout, index: Home }, { initialUrl: '/' });
-    expect(screen.getByText(copy.home.greetingMember('Anggota Demo'))).toBeTruthy();
+    expect(await screen.findByText(copy.home.greetingMember('Anggota Demo'))).toBeTruthy();
     expect(screen.getByLabelText(copy.common.mockBadgeA11y)).toBeTruthy();
   });
 
   it('shows no MOCK badge for a guest (nothing synthetic on screen)', async () => {
     await open('/');
     expect(screen.queryByLabelText(copy.common.mockBadgeA11y)).toBeNull();
+  });
+});
+
+describe('B-002 sign-in states', () => {
+  const layoutWith = (service: ReturnType<typeof createTestAuthService>) => {
+    const Layout = () => (
+      <SessionProvider service={service}>
+        <Stack />
+      </SessionProvider>
+    );
+    return Layout;
+  };
+
+  it('shows a safe message when sign-in fails and stays on the gate', async () => {
+    const provider = createFakeAuthProvider({ signIn: 'network', now: () => FIXED_NOW });
+    await renderRouter(
+      { _layout: layoutWith(createTestAuthService({ provider })), 'sign-in': SignIn, card: Card, index: Home },
+      { initialUrl: '/sign-in?returnTo=/card' },
+    );
+    await fireEvent.press(await screen.findByRole('button', { name: copy.signIn.mockButton }));
+    expect(await screen.findByText(copy.signIn.failed.network)).toBeTruthy();
+    expect(screen).toHavePathname('/sign-in');
+  });
+
+  it('AUTH-002: an expired stored session lands on the gate with an expired notice', async () => {
+    const now = () => FIXED_NOW;
+    const provider = createFakeAuthProvider({ refresh: 'rejected', now });
+    const store = createMemoryCredentialStore(seededSession({ expiresAt: FIXED_NOW - 1 }));
+    await renderRouter(
+      {
+        _layout: layoutWith(createTestAuthService({ provider, store, now })),
+        'sign-in': SignIn,
+        card: Card,
+        index: Home,
+      },
+      { initialUrl: '/card' },
+    );
+    await waitFor(() => expect(screen).toHavePathname('/sign-in'));
+    expect(await screen.findByText(copy.signIn.expired)).toBeTruthy();
+    expect(screen.queryByText(copy.card.placeholder)).toBeNull();
+  });
+
+  it('a signed-in member reopening the app goes straight to the card (no gate flash)', async () => {
+    await renderRouter(
+      { _layout: layoutWith(createTestAuthService({ signedIn: true })), 'sign-in': SignIn, card: Card, index: Home },
+      { initialUrl: '/card' },
+    );
+    expect(await screen.findByText(copy.card.placeholder)).toBeTruthy();
+    expect(screen).toHavePathname('/card');
   });
 });

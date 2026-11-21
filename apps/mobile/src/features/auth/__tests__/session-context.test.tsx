@@ -7,9 +7,12 @@ import { createTestAuthService } from '@/features/auth/testing/auth-fixtures';
 
 const MEMBER = { status: 'member', displayName: 'Anggota Demo', isMock: true };
 
-const wrapperFor =
-  (service: AuthService) =>
-  ({ children }: { children: ReactNode }) => <SessionProvider service={service}>{children}</SessionProvider>;
+const wrapperFor = (service: AuthService) => {
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <SessionProvider service={service}>{children}</SessionProvider>
+  );
+  return Wrapper;
+};
 
 describe('SessionProvider', () => {
   it('restores on mount: guest when nothing is stored', async () => {
