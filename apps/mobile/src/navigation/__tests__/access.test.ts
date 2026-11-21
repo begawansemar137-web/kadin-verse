@@ -1,7 +1,8 @@
-import { MOCK_MEMBER, type Session } from '@/features/auth/domain/session';
+import type { Session } from '@/features/auth/domain/session';
 import { canAccess, isProtectedPath } from '@/navigation/access';
 
 const guest: Session = { status: 'guest' };
+const member: Session = { status: 'member', displayName: 'Anggota Demo', isMock: true };
 
 describe('isProtectedPath', () => {
   it.each(['/card', '/card/', '/card/anything'])('treats %s as protected', (path) => {
@@ -27,6 +28,10 @@ describe('canAccess', () => {
   });
 
   it('lets members reach protected routes', () => {
-    expect(canAccess('/card', MOCK_MEMBER)).toBe(true);
+    expect(canAccess('/card', member)).toBe(true);
+  });
+
+  it('does not let a still-restoring session through (screens show loading instead)', () => {
+    expect(canAccess('/card', { status: 'restoring' })).toBe(false);
   });
 });

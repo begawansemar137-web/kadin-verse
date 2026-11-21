@@ -1,12 +1,5 @@
-/** Mock-only session for B-001. Real identity is B-002 and blocked on ADR-003 / D-03. */
+/** UI-facing session. Holds no credentials (ADR-003 §2); AuthService owns tokens. */
 export type Session =
-  | { status: 'guest' }
-  | { status: 'member'; displayName: string; isMock: true };
-
-export const GUEST: Session = { status: 'guest' };
-
-export const MOCK_MEMBER: Session = {
-  status: 'member',
-  displayName: 'Anggota Demo',
-  isMock: true,
-};
+  | { status: 'restoring' }
+  | { status: 'guest'; notice?: 'expired' }
+  | { status: 'member'; displayName: string; isMock: boolean };
