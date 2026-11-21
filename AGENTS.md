@@ -57,26 +57,14 @@ Chat/AI copilot, recommendations, and specialized COO/ATA Carnet/APEC workflows 
 - **Backend:** owned HTTPS API Gateway/BFF; identity/RBAC, registry adapter, content/service APIs, audit/observability.
 - **Persistence:** PostgreSQL and object storage as proposed logical components; actual providers/hosting are **TBD**.
 - **Admin:** separate web CMS with server-enforced permissions.
-- **Navigation:** Expo Router vs React Navigation **requires ADR**.
+- **Navigation:** Expo Router, per `docs/adr/ADR-002-navigation-library.md` (ACCEPTED).
 - **State and fetching:** choose and document via ADR; do not introduce competing state libraries without reason.
-- **Expo managed vs prebuild**, auth/SSO, regional tenancy, CMS, notifications, analytics, payment provider, hosting, and data residency are unresolved; request decision before production integration.
+- **Expo workflow:** managed with Continuous Native Generation, per `docs/adr/ADR-001-expo-workflow.md` (ACCEPTED; revisit at B-002/B-006).
+- Auth/SSO, regional tenancy, CMS, notifications, analytics, payment provider, hosting, and data residency are unresolved; request decision before production integration.
 
-Suggested monorepo layout (create only after ADR approval):
-```text
-apps/mobile/
-apps/admin/
-services/api/
-packages/contracts/
-docs/adr/
-docs/specs/
-docs/test-evidence/
-.github/workflows/
-AGENTS.md
-```
+**Canonical layout:** `docs/adr/ADR-012-repository-layout-canonicalization.md` (ACCEPTED, with Amendment 1 keeping `PRD.md`/`SAD.md`/`SDD.md` at the root) is the single source of truth for the repository tree. Scaffold from that ADR, not from any tree in `SAD.md`/`SDD.md` or an older sketch.
 
-Within `apps/mobile`, prefer `src/features/<feature>/{components,screens,domain,data,__tests__}` plus `src/shared/{ui,api,auth,utils}`. Avoid cross-feature imports that bypass public interfaces.
-
-The sketch above is illustrative only and omits detail (e.g. `packages/` contents, doc placement). See `docs/adr/ADR-012-repository-layout-canonicalization.md` for the canonical layout once accepted; do not scaffold from this section or from `SAD.md`/`SDD.md`'s own trees if they disagree with that ADR.
+Within `apps/mobile`, Expo Router route files live only in `src/app/` (ADR-002); put everything else in `src/features/<feature>/{components,screens,domain,data,__tests__}`, `src/navigation/` and `src/shared/{ui,api,auth,config,copy,domain,utils}`. Avoid cross-feature imports that bypass public interfaces.
 
 ## 5. Operating procedure for each agent task
 1. **DISCOVER** — inspect current repository structure, package scripts, test tooling, existing patterns and relevant specifications. Never assume an uncreated repository exists.

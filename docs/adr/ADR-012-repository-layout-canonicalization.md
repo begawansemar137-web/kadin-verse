@@ -3,7 +3,8 @@
 **Status:** ACCEPTED — 2026-11-21 (approved by project owner in session; see commit)
 **Date:** 2026-11-21
 **Decision owner:** Architect (R/A), Product Owner (C), Engineering (C)
-**Supersedes (on approval):** `SAD.md` §14 repository tree, `SDD.md` §3 repository tree, and the illustrative layout in `AGENTS.md` §4, wherever they conflict with the canonical tree below.
+**Supersedes:** `SAD.md` §14 repository tree, `SDD.md` §3 repository tree, and the illustrative layout in `AGENTS.md` §4. All three now point here instead of restating a tree.
+**Amended:** 2026-11-21, Amendment 1. Top-level specification documents stay at the repository root.
 
 ## Context
 
@@ -17,18 +18,29 @@ Without a single canonical answer, Codex/OpenCode agents following `AGENTS.md`'s
 
 ## Decision
 
-Adopt the following **canonical repository layout** for `kadin-next`. This tree reconciles all three prior proposals rather than discarding any of them:
+Adopt the following **canonical repository layout** for `kadin-verse` (earlier drafts called it `kadin-next`). This tree reconciles all three prior proposals rather than discarding any of them:
 
 ```text
-kadin-next/
-├── AGENTS.md                      # stays at repo root — see rationale below
+kadin-verse/                       # canonical repository (formerly referred to as "kadin-next")
+├── AGENTS.md                      # agent entry point; stays at root
 ├── README.md
+├── PRD.md, SAD.md, SDD.md         # specification baseline; stays at root (Amendment 1)
+├── APK-ANALYSIS.md, FEATURE-INVENTORY.md, UIUX-ANALYSIS.md, SCREEN-INVENTORY.md
+│                                  # discovery/analysis baseline; stays at root (Amendment 1)
+├── uiux.md, traceability.md       # root, when created (Amendment 1)
+├── KADIN-NEXTGEN-SPEC-001-008/    # baseline feature specs; new specs go in docs/specs/
 ├── .github/workflows/
 ├── apps/
 │   ├── mobile/                    # React Native / Expo
+│   │   └── src/
+│   │       ├── app/               # Expo Router route files only (ADR-002)
+│   │       ├── features/<feature>/{components,screens,domain,data,__tests__}/
+│   │       ├── navigation/        # route policy, deep-link helpers, tab config
+│   │       └── shared/{ui,api,auth,config,copy,domain,utils}/
 │   └── admin/                     # Web CMS
 ├── services/
 │   └── api/                       # Modular API / BFF
+│       └── src/{modules,shared,adapters,infra}/
 ├── packages/
 │   ├── contracts/                 # OpenAPI spec + generated types/clients — never hand-edited
 │   ├── types/                     # hand-written shared TS types/DTOs not produced by codegen
@@ -41,20 +53,18 @@ kadin-next/
 │   └── {contract,e2e,security}/
 ├── infrastructure/                # IaC and environment templates
 └── docs/
-    ├── PRD.md
-    ├── SAD.md
-    ├── SDD.md
-    ├── uiux.md
-    ├── traceability.md
     ├── adr/                       # this file lives at docs/adr/ADR-012-...md
     ├── specs/
     ├── threat-model/
-    └── test-evidence/
+    ├── test-evidence/
+    └── superpowers/plans/         # agent implementation plans
 ```
+
+Create a folder only when the first real file needs it; an empty placeholder directory is not required by this ADR.
 
 ### Rationale per conflict
 
-**1. Doc placement — root vs. `docs/`.** Resolved in favor of `docs/`, with one named exception:
+**1. Doc placement — root vs. `docs/`.** *Originally resolved in favor of `docs/`; reversed by Amendment 1 below. The original reasoning is kept for the record.*
 - `AGENTS.md` **stays at repo root**. Agent-driven tooling (Claude Code, Codex, OpenCode) conventionally auto-discovers `AGENTS.md` at the project root; nesting it under `docs/` risks it being silently ignored by an agent harness. `AGENTS.md`'s own illustrative layout (`AGENTS.md:74`) already shows it at root, independent of this ADR.
 - `PRD.md`, `SAD.md`, `SDD.md`, `uiux.md`, and `traceability.md` move to `docs/`, matching `SDD.md`'s proposal and keeping the repo root limited to tooling entry points (`AGENTS.md`, `README.md`, workflow/config files). `docs/adr/`, `docs/specs/`, and `docs/test-evidence/` were already agreed by all three documents (`SAD.md:291-296`, `SDD.md:33`, `AGENTS.md:70-72`), so this is a minimal, low-risk extension of an existing agreement rather than a new direction.
 - `README.md` stays at root per universal convention; it was not previously specified by any of the three documents.
@@ -68,15 +78,23 @@ kadin-next/
 
 **3. `db/` and `tests/` top-level folders.** Adopted from `SDD.md` as-is. `SAD.md`'s tree never claimed to be exhaustive (it predates `SDD.md` and omits several leaf-level details SDD adds); treat SDD's additions here as refinement, not disagreement.
 
+## Amendment 1 — specification documents stay at the root (2026-11-21)
+
+**Decision:** `PRD.md`, `SAD.md`, `SDD.md`, the discovery documents (`APK-ANALYSIS.md`, `FEATURE-INVENTORY.md`, `UIUX-ANALYSIS.md`, `SCREEN-INVENTORY.md`), `uiux.md` and `traceability.md` live at the repository root. `docs/` holds ADRs, new specs, threat models, test evidence and agent plans. Approved by the project owner on 2026-11-21.
+
+**Why:** the canonical repository (`kadin-verse`) already keeps these documents at the root. `AGENTS.md` §1 tells every agent to read them there, and the accepted ADRs, specs and plans cite them by root path (for example `SAD.md` §6). Moving them would break those references in exchange for a tidier root, with no gain in correctness. The original problem was that the documents disagreed with each other; that is solved by having one canonical tree, whichever location it chooses.
+
+**Effect:** no files move. Other documents that sketch a tree now point to this ADR.
+
 ## Consequences
 
-- `SAD.md` §14 and `SDD.md` §3 repository trees are **superseded by this ADR** once approved. Both documents should add a one-line pointer to this ADR rather than carry a layout that can drift out of sync again (see "Follow-up" below).
-- `AGENTS.md` §4's illustrative layout should gain the same pointer; its text already correctly gates repo creation on ADR approval (`AGENTS.md:64`), so no behavioral change is required there beyond the reference.
+- `SAD.md` §14 and `SDD.md` §3 repository trees are **superseded by this ADR**. Both now carry a pointer to this ADR instead of a tree, so they cannot drift out of sync again.
+- `AGENTS.md` §4's illustrative layout is replaced by the same pointer.
 - Agents following `AGENTS.md`'s DISCOVER/PLAN steps now have exactly one layout to scaffold against instead of three, removing a source of non-deterministic repo structure across agent runs.
-- This ADR does not decide package manager, workspace tool (pnpm/turbo/nx/etc.), or monorepo-vs-polyrepo — those remain open per `SAD.md` ADR-007 and are out of scope here.
+- This ADR does not decide the package manager, workspace tool or monorepo-vs-polyrepo question; those remain open under `SAD.md` ADR-007. (The B-001 branch uses a pnpm workspace provisionally; ADR-007 should ratify or replace it.)
 
 ## Status and next steps
 
-1. Architect and Product Owner review and accept or amend this ADR.
-2. On acceptance, update the row for this ADR in `SAD.md` §15's ADR table (status OPEN → ACCEPTED) and patch the superseded trees in `SAD.md` §14 / `SDD.md` §3 / `AGENTS.md` §4 to reference this file instead of restating a tree.
-3. No repository scaffolding should occur against this layout until step 2 is complete, per `AGENTS.md`'s "create only after ADR approval" rule.
+1. ~~Architect and Product Owner review and accept or amend this ADR.~~ Accepted 2026-11-21; Amendment 1 approved the same day.
+2. ~~Update `SAD.md` §15 (OPEN → ACCEPTED) and replace the trees in `SAD.md` §14, `SDD.md` §3 and `AGENTS.md` §4 with pointers to this file.~~ Done in the docs follow-up PR.
+3. Scaffolding against this layout is authorized. Other ADRs (identity, registry, QR, tenancy; see `SAD.md` §15) still gate their features; this ADR only settles directory shape.
