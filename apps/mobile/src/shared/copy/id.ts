@@ -46,4 +46,8 @@ export const copy = {
     mockButton: 'Masuk sebagai anggota demo',
   },
   notFound: { heading: 'Halaman tidak ditemukan' },
+  error: {
+    heading: 'Terjadi kesalahan',
+    body: 'Halaman ini gagal dimuat. Silakan coba lagi.',
+  },
 } as const;
