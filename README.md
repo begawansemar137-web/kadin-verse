@@ -2,7 +2,7 @@
 
 Repository for the **independent** successor KADIN Indonesia mobile platform: a member-facing React Native / Expo / TypeScript app, an owned API/BFF, and an admin CMS.
 
-> **Status:** documentation baseline only. No application code yet. Architecture and repository layout are **PROPOSED** and gated on approvals (see `docs/adr/ADR-012-repository-layout-canonicalization.md`).
+> **Status:** B-001 navigation shell (mock-only) on `feat/B-001-mobile-p0-mock`. ADR-001 (Expo managed/CNG), ADR-002 (Expo Router) and ADR-012 (repository layout) accepted 2026-11-21. No live auth, membership, QR or backend; design tokens and copy are PLACEHOLDER pending UX approval.
 
 ## Start here
 
