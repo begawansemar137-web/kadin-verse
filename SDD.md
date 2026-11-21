@@ -27,26 +27,9 @@ Translate the approved *direction* in PRD/SAD into actionable software specifica
 
 ## 3. Proposed repository structure
 
-```text
-kadin-next/
-├── AGENTS.md
-├── docs/{PRD.md,SAD.md,SDD.md,uiux.md,ADR/,contracts/,traceability.md}
-├── apps/
-│   ├── mobile/                    # Expo / React Native
-│   │   ├── app/                   # route entrypoints, if Expo Router approved
-│   │   └── src/{features,shared,design-system}/
-│   └── admin/                     # CMS web application
-├── services/api/
-│   └── src/{modules,shared,adapters,infra}/
-├── packages/{contracts,types,config}/
-├── db/{migrations,seeds}/
-├── tests/{contract,e2e,security}/
-└── .github/workflows/
-```
+**Repository layout:** `docs/adr/ADR-012-repository-layout-canonicalization.md` (ACCEPTED) is the single source of truth for the repository tree, including `apps/mobile/src/{app,features,navigation,shared}` and the `packages/` set. This section deliberately does not restate it.
 
 Use a workspace package manager selected in ADR-007. Do not introduce a second router, state-management library, or ORM without a recorded decision.
-
-**Superseded by ADR-012:** the tree above (doc placement under `docs/`; `packages/{contracts, types, config}`) conflicts with `SAD.md` §14's tree. See `docs/adr/ADR-012-repository-layout-canonicalization.md` for the reconciled canonical layout; that ADR is the source of truth once accepted, not this section.
 
 ## 4. Mobile design
 

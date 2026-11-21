@@ -195,40 +195,16 @@ Environments: local, test/CI, staging, production. Separate IdP clients, secrets
 
 ## 14. Repository and ownership model
 
-```text
-kadin-next/
-├── apps/
-│   ├── mobile/                 # React Native / Expo
-│   └── admin/                  # Web CMS
-├── services/
-│   └── api/                    # Modular API / BFF
-├── packages/
-│   ├── contracts/              # OpenAPI and generated types
-│   ├── design-tokens/          # Approved shared tokens
-│   └── shared-utils/
-├── infrastructure/             # IaC and environment templates
-├── docs/
-│   ├── adr/
-│   ├── specs/
-│   ├── threat-model/
-│   └── test-evidence/
-├── .github/workflows/
-├── AGENTS.md
-├── PRD.md
-├── SAD.md
-└── SDD.md
-```
+**Repository layout:** `docs/adr/ADR-012-repository-layout-canonicalization.md` (ACCEPTED) is the single source of truth for the repository tree: top-level folders, `packages/` contents and doc placement. This section deliberately does not restate a tree, so the two cannot drift apart.
 
 **Never commit:** original APK, JADX/Apktool output, Hermes bundle, unlicensed legacy assets, raw production logs, secrets or PII. Store research artifacts separately with access controls.
-
-**Superseded by ADR-012:** the tree above (doc placement at repo root; `packages/{contracts, design-tokens, shared-utils}`) conflicts with `SDD.md` §3's tree. See `docs/adr/ADR-012-repository-layout-canonicalization.md` for the reconciled canonical layout; that ADR is the source of truth once accepted, not this section.
 
 ## 15. Architecture decision records required
 
 | ADR | Decision | Default recommendation | Status |
 |---|---|---|---|
-| ADR-001 | Expo managed vs prebuild | Evaluate native module requirements | OPEN |
-| ADR-002 | Expo Router vs React Navigation | Select after navigation validation | OPEN |
+| ADR-001 | Expo managed vs prebuild | Managed with Continuous Native Generation (B-001 scope) — `docs/adr/ADR-001-expo-workflow.md` | ACCEPTED 2026-11-21 |
+| ADR-002 | Expo Router vs React Navigation | Expo Router — `docs/adr/ADR-002-navigation-library.md` | ACCEPTED 2026-11-21 |
 | ADR-003 | Identity provider and account linking | OIDC/PKCE-compatible provider | BLOCKING for live auth |
 | ADR-004 | Membership registry authority and contract | Read-only verified adapter first | BLOCKING for live membership |
 | ADR-005 | QR purpose, verifier, TTL, revocation | Signed short-lived challenge | BLOCKING for live QR |
@@ -238,7 +214,7 @@ kadin-next/
 | ADR-009 | Notification and analytics providers | Opt-in and privacy-minimal | OPEN |
 | ADR-010 | P1 payment/renewal partner and rules | Defer to P1 | BLOCKING for payments |
 | ADR-011 | AI knowledge, model, escalation | Defer to P2 | BLOCKING for AI |
-| ADR-012 | Repository layout canonicalization (doc placement, `packages/` contents) | See `docs/adr/ADR-012-repository-layout-canonicalization.md` | OPEN |
+| ADR-012 | Repository layout canonicalization (doc placement, `packages/` contents) | See `docs/adr/ADR-012-repository-layout-canonicalization.md` (Amendment 1: specs stay at root) | ACCEPTED 2026-11-21 |
 
 ## 16. Delivery roadmap and architecture gates
 
