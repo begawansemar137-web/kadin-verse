@@ -1,0 +1,49 @@
+# --- Clean-room boundary (AGENTS.md §2, SAD.md §14) ---
+# Never commit legacy APK material or research artifacts.
+input/
+analysis/
+*.apk
+*.aab
+*.xapk
+*.apks
+*.dex
+*.smali
+*.hbc
+index.android.bundle
+raw-logs/
+*.logcat
+
+# --- Secrets & local environment ---
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.jks
+*.keystore
+google-services.json
+GoogleService-Info.plist
+.claude/settings.local.json
+
+# --- Node / Expo / build output ---
+node_modules/
+.expo/
+dist/
+build/
+web-build/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Native generated projects (Expo prebuild; revisit once ADR on managed vs prebuild is approved) ---
+/apps/mobile/android/
+/apps/mobile/ios/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
