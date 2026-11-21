@@ -1,6 +1,6 @@
 # ADR-002 — Navigation library: Expo Router
 
-**Status:** PROPOSED — pending Architect + UX owner approval
+**Status:** ACCEPTED — 2026-11-21 (approved by project owner in session; see commit)
 **Date:** 2026-11-21
 **Decision owner:** Architect (R/A), UX owner (C), Engineering (C)
 

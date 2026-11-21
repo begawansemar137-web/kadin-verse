@@ -1,6 +1,6 @@
 # ADR-001 — Expo workflow: managed with Continuous Native Generation (B-001 scope)
 
-**Status:** PROPOSED — pending Architect approval
+**Status:** ACCEPTED — 2026-11-21 (approved by project owner in session; see commit)
 **Date:** 2026-11-21
 **Decision owner:** Architect (R/A), Engineering (C), Security (C)
 
