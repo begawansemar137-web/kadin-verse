@@ -1,6 +1,6 @@
 # ADR-012 — Repository layout canonicalization
 
-**Status:** PROPOSED — pending Architect and Product Owner sign-off (not yet approved; do not scaffold the repository from this ADR without confirmation)
+**Status:** ACCEPTED — 2026-11-21 (approved by project owner in session; see commit)
 **Date:** 2026-11-21
 **Decision owner:** Architect (R/A), Product Owner (C), Engineering (C)
 **Supersedes (on approval):** `SAD.md` §14 repository tree, `SDD.md` §3 repository tree, and the illustrative layout in `AGENTS.md` §4, wherever they conflict with the canonical tree below.
