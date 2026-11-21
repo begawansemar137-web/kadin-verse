@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { useEffect, useState } from 'react';
+import { AccessibilityInfo, StyleSheet, Text } from 'react-native';
 import { color, fontSize } from '@kadin/design-tokens';
 
 import type { AuthFailure } from '@/features/auth/domain/auth-provider';
@@ -19,6 +19,12 @@ const SignInScreen = () => {
   const [failure, setFailure] = useState<AuthFailure | null>(null);
   const target = safeReturnTo(typeof params.returnTo === 'string' ? params.returnTo : undefined);
   const expired = session.status === 'guest' && session.notice === 'expired';
+  const message = failure !== null ? copy.signIn.failed[failure] : expired ? copy.signIn.expired : null;
+
+  // role="alert" alone is not reliably spoken on iOS/Android; announce explicitly when the message changes.
+  useEffect(() => {
+    if (message !== null) AccessibilityInfo.announceForAccessibility(message);
+  }, [message]);
 
   const onSignIn = async () => {
     setPending(true);
@@ -34,14 +40,13 @@ const SignInScreen = () => {
 
   return (
     <Screen title={copy.signIn.heading}>
-      {expired && failure === null ? (
-        <Text accessibilityRole="alert" style={styles.notice}>
-          {copy.signIn.expired}
-        </Text>
-      ) : null}
-      {failure !== null ? (
-        <Text accessibilityRole="alert" style={styles.error}>
-          {copy.signIn.failed[failure]}
+      {message !== null ? (
+        <Text
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          style={failure !== null ? styles.error : styles.notice}
+        >
+          {message}
         </Text>
       ) : null}
       <Text style={styles.body}>{copy.signIn.explainer}</Text>

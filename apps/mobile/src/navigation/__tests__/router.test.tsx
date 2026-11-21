@@ -1,5 +1,6 @@
 import { Stack, router } from 'expo-router';
 import { renderRouter, screen } from 'expo-router/testing-library';
+import { AccessibilityInfo } from 'react-native';
 import { act, fireEvent, waitFor } from '@testing-library/react-native';
 
 import * as RootLayout from '@/app/_layout';
@@ -204,6 +205,21 @@ describe('B-002 sign-in states', () => {
     await waitFor(() => expect(screen).toHavePathname('/sign-in'));
     expect(await screen.findByText(copy.signIn.expired)).toBeTruthy();
     expect(screen.queryByText(copy.card.placeholder)).toBeNull();
+  });
+
+  it('announces sign-in failure and the expired notice to screen readers', async () => {
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    const now = () => FIXED_NOW;
+    const provider = createFakeAuthProvider({ refresh: 'rejected', signIn: 'network', now });
+    const store = createMemoryCredentialStore(seededSession({ expiresAt: FIXED_NOW - 1 }));
+    await renderRouter(
+      { _layout: layoutWith(createTestAuthService({ provider, store, now })), 'sign-in': SignIn, card: Card, index: Home },
+      { initialUrl: '/card' },
+    );
+    await waitFor(() => expect(announce).toHaveBeenCalledWith(copy.signIn.expired));
+    await fireEvent.press(await screen.findByRole('button', { name: copy.signIn.mockButton }));
+    await waitFor(() => expect(announce).toHaveBeenCalledWith(copy.signIn.failed.network));
+    announce.mockRestore();
   });
 
   it('a signed-in member reopening the app goes straight to the card (no gate flash)', async () => {

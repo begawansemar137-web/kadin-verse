@@ -27,6 +27,7 @@ export const createAuthService = ({ provider, store, now = Date.now }: AuthServi
   let session: Session = { status: 'restoring' };
   let stored: StoredSession | null = null;
   let generation = 0;
+  let signOuts = 0;
   let restoring: Promise<void> | null = null;
   let signingIn: Promise<SignInOutcome> | null = null;
   let refreshing: Promise<boolean> | null = null;
@@ -87,6 +88,10 @@ export const createAuthService = ({ provider, store, now = Date.now }: AuthServi
         if (result.ok) {
           stored = { ...current, credentials: result.credentials };
           await persist(stored);
+          if (startedAt !== generation) {
+            await clearStore(); // signed out while saving: keep the sign-out durable
+            return false;
+          }
           return true;
         }
         if (result.reason === 'rejected') await expire();
@@ -125,8 +130,12 @@ export const createAuthService = ({ provider, store, now = Date.now }: AuthServi
   const signIn = (): Promise<SignInOutcome> => {
     if (provider === null) return Promise.resolve('unavailable');
     signingIn ??= (async (): Promise<SignInOutcome> => {
-      const startedAt = generation;
+      // Only a user sign-out cancels this sign-in. An expiry caused by the restore it waits on must not,
+      // so the generation is captured after the restore, and sign-outs are counted from the call itself.
+      const signOutsAtStart = signOuts;
       await restoring;
+      const startedAt = generation;
+      const cancelled = () => startedAt !== generation || signOutsAtStart !== signOuts;
       let result: SignInResult;
       try {
         result = await provider.signIn();
@@ -134,12 +143,15 @@ export const createAuthService = ({ provider, store, now = Date.now }: AuthServi
         result = { ok: false, reason: 'network' };
       }
       if (!result.ok) return result.reason;
-      if (startedAt !== generation) return 'cancelled';
+      if (cancelled()) return 'cancelled';
       const current: StoredSession = { credentials: result.credentials, user: result.user };
       stored = current;
       setSession(memberFrom(current));
       await persist(current);
-      if (startedAt !== generation) await clearStore(); // signed out while saving
+      if (cancelled()) {
+        await clearStore(); // signed out while saving: keep the sign-out durable
+        return 'cancelled';
+      }
       return 'ok';
     })().finally(() => {
       signingIn = null;
@@ -149,6 +161,7 @@ export const createAuthService = ({ provider, store, now = Date.now }: AuthServi
 
   const signOut = async () => {
     const current = stored;
+    signOuts += 1;
     endSession({ status: 'guest' });
     await clearStore();
     if (provider !== null && current !== null) {

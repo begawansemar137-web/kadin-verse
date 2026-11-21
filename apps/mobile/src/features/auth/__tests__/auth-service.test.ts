@@ -256,6 +256,70 @@ describe('handleUnauthorized (API 401, AUTH-002)', () => {
   });
 });
 
+/** A store whose save completes only when the test says so, to interleave sign-out with a pending write. */
+const deferredSaveStore = (initial: string | null = null) => {
+  let value = initial;
+  let release: (() => void) | null = null;
+  const store: CredentialStore = {
+    load: async () => value,
+    save: (next) =>
+      new Promise<void>((resolve) => {
+        release = () => {
+          value = next;
+          resolve();
+        };
+      }),
+    clear: async () => {
+      value = null;
+    },
+  };
+  return { store, savePending: () => release !== null, releaseSave: () => release?.(), peek: () => value };
+};
+
+const until = async (condition: () => boolean) => {
+  for (let i = 0; i < 50 && !condition(); i += 1) await Promise.resolve();
+  if (!condition()) throw new Error('condition never became true');
+};
+
+describe('interleavings found in final review', () => {
+  it('does not report a sign-in started during restore as cancelled when restore expires the old session', async () => {
+    const { service, provider } = setup({ stored: seededSession({ expiresAt: FIXED_NOW - 1 }) });
+    provider.configure({ refresh: 'rejected' });
+    const restoring = service.restore();
+    const pending = service.signIn();
+    await restoring;
+    expect(await pending).toBe('ok');
+    expect(service.getSession()).toEqual(MEMBER);
+  });
+
+  it('reports cancelled and leaves storage empty when sign-out lands while the new session is being saved', async () => {
+    const { store, savePending, releaseSave, peek } = deferredSaveStore();
+    const { service } = setup({ store });
+    await service.restore();
+    const pending = service.signIn();
+    await until(savePending);
+    await service.signOut();
+    releaseSave();
+    expect(await pending).toBe('cancelled');
+    expect(service.getSession()).toEqual({ status: 'guest' });
+    expect(peek()).toBeNull();
+  });
+
+  it('leaves storage empty when sign-out lands while a refreshed token is being saved', async () => {
+    const { store, savePending, releaseSave, peek } = deferredSaveStore(seededSession());
+    const { service, advance } = setup({ store });
+    await service.restore();
+    advance(2 * 60 * 60_000);
+    const token = service.getAccessToken();
+    await until(savePending);
+    await service.signOut();
+    releaseSave();
+    expect(await token).toBeNull();
+    expect(peek()).toBeNull();
+    expect(service.getSession()).toEqual({ status: 'guest' });
+  });
+});
+
 describe('subscribe', () => {
   it('notifies on change and stops after unsubscribe', async () => {
     const { service } = setup();

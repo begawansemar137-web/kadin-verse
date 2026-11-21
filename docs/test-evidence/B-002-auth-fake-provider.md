@@ -50,6 +50,27 @@ Typecheck was red between commits cae75e2 and aa4909d (Tasks 3–4), as the plan
 4. Offline cold start with an expired token: `stays signed in when offline at launch with an expired token`.
 5. Secure storage failing: `treats an unreadable store as signed out`, `still signs in for this run when secure storage cannot save`, `still signs out when storage cannot be cleared`.
 
+## Final review and fix pass
+
+A fresh reviewer (most capable model) read the whole branch (cc83153..b1439dd). It found 0 Critical, 2 Important and 5 Minor issues. After re-grading by user impact, 4 were fixed, each test-first:
+
+| Finding | Test (RED → GREEN) |
+|---|---|
+| A sign-in started during restore was reported as "cancelled" when restore expired the old session | `does not report a sign-in started during restore as cancelled…`: RED `Expected "ok", Received "cancelled"` |
+| Sign-out while the new session was being saved still returned `ok`, and the screen navigated | `reports cancelled and leaves storage empty when sign-out lands while the new session is being saved`: RED `Expected "cancelled", Received "ok"` |
+| Sign-out while a refreshed token was being saved left the session in storage, so it was restored on next launch (re-graded from Minor) | `leaves storage empty when sign-out lands while a refreshed token is being saved`: RED, the stored session was still present |
+| Expired and failure messages were not reliably announced by screen readers (re-graded from Minor) | router `announces sign-in failure and the expired notice to screen readers`: RED, `announceForAccessibility` was not called |
+
+During the fix pass, the first fix (moving the generation capture after the restore wait) made the existing test `discards a sign-in that completes after sign-out` fail. The service now also counts user sign-outs from the moment `signIn()` is called, so an expiry caused by restore does not cancel a sign-in but a user's sign-out still does. Both tests pass.
+
+Gates after the fix pass: `pnpm typecheck` exit 0 · `pnpm lint` exit 0 · `pnpm exec jest` → `Test Suites: 16 passed` · `Tests: 157 passed, 157 total`.
+
+Deferred minors:
+- the sign-in result can still navigate after the user leaves the screen;
+- the demo-account explainer still shows in builds without the fake provider;
+- re-sign-in does not revoke the previous credentials;
+- the disabled button has no busy announcement.
+
 ## NOT RUN
 
 - **On-device secure storage (Android/iOS).** Jest replaces `expo-secure-store` with an in-memory mock, so persistence across app restarts on a real keystore is unverified. To reproduce: build with `npx eas-cli@latest build --profile preview --platform android` (and iOS), sign in with the demo account, force-quit, reopen, and confirm Beranda still greets "Anggota Demo". Then sign out, force-quit, reopen, and confirm guest.
