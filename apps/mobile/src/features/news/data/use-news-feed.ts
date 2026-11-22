@@ -30,26 +30,28 @@ export const useNewsFeed = (source: NewsSource | null) => {
   const generation = useRef(0);
   const loadingMore = useRef(false);
 
-  const fetchFirst = useCallback(async () => {
+  // State is only set in the response callback, never synchronously in the effect (react-hooks/set-state-in-effect).
+  const fetchFirst = useCallback(() => {
     if (!source) return;
     const gen = ++generation.current;
     loadingMore.current = false;
-    const res = await source.listPublished(null);
-    if (gen !== generation.current) return;
-    if (!res.ok) {
-      setFeed({ ...initialFeed(source), list: failureState(res.reason) });
-      return;
-    }
-    const { items, nextCursor } = res.value;
-    setFeed({
-      ...initialFeed(source),
-      list: items.length === 0 ? { status: 'empty' } : { status: 'success', data: items },
-      nextCursor,
+    void source.listPublished(null).then((res) => {
+      if (gen !== generation.current) return;
+      if (!res.ok) {
+        setFeed({ ...initialFeed(source), list: failureState(res.reason) });
+        return;
+      }
+      const { items, nextCursor } = res.value;
+      setFeed({
+        ...initialFeed(source),
+        list: items.length === 0 ? { status: 'empty' } : { status: 'success', data: items },
+        nextCursor,
+      });
     });
   }, [source]);
 
   useEffect(() => {
-    void fetchFirst();
+    fetchFirst();
     return () => {
       generation.current += 1;
     };
@@ -57,7 +59,7 @@ export const useNewsFeed = (source: NewsSource | null) => {
 
   const retry = useCallback(() => {
     setFeed(initialFeed(source));
-    void fetchFirst();
+    fetchFirst();
   }, [source, fetchFirst]);
 
   const loadMore = useCallback(() => {

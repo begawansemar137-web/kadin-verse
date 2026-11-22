@@ -13,19 +13,21 @@ export const useArticle = (source: NewsSource | null, id: string) => {
   const [view, setView] = useState<ArticleView>(source ? { status: 'loading' } : { status: 'not-found' });
   const generation = useRef(0);
 
-  const fetchArticle = useCallback(async () => {
+  // State is only set in the response callback, never synchronously in the effect (react-hooks/set-state-in-effect).
+  const fetchArticle = useCallback(() => {
     if (!source) return;
     const gen = ++generation.current;
-    const res = await source.getPublished(id);
-    if (gen !== generation.current) return;
-    if (res.ok) setView({ status: 'success', data: res.value });
-    else if (res.reason === 'not-found') setView({ status: 'not-found' });
-    else if (res.reason === 'offline') setView({ status: 'offline' });
-    else setView({ status: 'error', message: copy.news.loadFailed });
+    void source.getPublished(id).then((res) => {
+      if (gen !== generation.current) return;
+      if (res.ok) setView({ status: 'success', data: res.value });
+      else if (res.reason === 'not-found') setView({ status: 'not-found' });
+      else if (res.reason === 'offline') setView({ status: 'offline' });
+      else setView({ status: 'error', message: copy.news.loadFailed });
+    });
   }, [source, id]);
 
   useEffect(() => {
-    void fetchArticle();
+    fetchArticle();
     return () => {
       generation.current += 1;
     };
@@ -34,7 +36,7 @@ export const useArticle = (source: NewsSource | null, id: string) => {
   const retry = useCallback(() => {
     if (!source) return;
     setView({ status: 'loading' });
-    void fetchArticle();
+    fetchArticle();
   }, [source, fetchArticle]);
 
   return { view, retry };

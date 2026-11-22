@@ -17,6 +17,7 @@ import { createFakeAuthProvider } from '@/features/auth/data/fake-auth-provider'
 import { createMemoryCredentialStore } from '@/features/auth/data/memory-credential-store';
 import { SessionProvider, useSession } from '@/features/auth/session-context';
 import { createTestAuthService, FIXED_NOW, seededSession } from '@/features/auth/testing/auth-fixtures';
+import { SAMPLE_IDS } from '@/features/news/data/sample-articles';
 import { copy } from '@/shared/copy/id';
 import { Button } from '@/shared/ui/Button';
 
@@ -50,11 +51,12 @@ describe('B-001 navigation shell', () => {
     }
   });
 
-  it('switches tabs and shows the News empty state (AC-004-04)', async () => {
+  it('switches tabs and shows the News feed with synthetic content labelled (AC-004-04)', async () => {
     await open('/');
     await fireEvent.press(screen.getByText(copy.tabs.news));
     expect(screen).toHavePathname('/news');
-    expect(screen.getByText(copy.news.empty)).toBeTruthy();
+    expect(await screen.findByText('[Contoh] Forum UMKM Daerah')).toBeTruthy();
+    expect(screen.getByLabelText(copy.common.mockBadgeA11y)).toBeTruthy();
   });
 
   it('AC-004-02: guest opening the member card is sent to the sign-in gate', async () => {
@@ -80,8 +82,8 @@ describe('B-001 navigation shell', () => {
   });
 
   it('cold deep link to news detail still has a back path to Beranda', async () => {
-    await open('/news/abc-123');
-    expect(screen.getByText(copy.news.detailPlaceholder)).toBeTruthy();
+    await open(`/news/${SAMPLE_IDS.firstPublished}`);
+    expect(await screen.findByRole('header', { name: '[Contoh] Forum UMKM Daerah' })).toBeTruthy();
     expect(router.canGoBack()).toBe(true);
     await act(async () => {
       router.back();
@@ -229,5 +231,30 @@ describe('B-002 sign-in states', () => {
     );
     expect(await screen.findByText(copy.card.placeholder)).toBeTruthy();
     expect(screen).toHavePathname('/card');
+  });
+});
+
+describe('B-003 public news journeys', () => {
+  it('guest opens an article from the feed and goes back to the feed', async () => {
+    await open('/news');
+    await fireEvent.press(await screen.findByRole('button', { name: /\[Contoh\] Forum UMKM Daerah/ }));
+    expect(screen).toHavePathname(`/news/${SAMPLE_IDS.firstPublished}`);
+    expect(await screen.findByText('Konten ini sintetis dan hanya untuk pengujian.')).toBeTruthy();
+    await act(async () => {
+      router.back();
+    });
+    expect(screen).toHavePathname('/news');
+  });
+
+  it.each([
+    ['draft', SAMPLE_IDS.draft],
+    ['in review', SAMPLE_IDS.inReview],
+    ['archived', SAMPLE_IDS.archived],
+    ['scheduled', SAMPLE_IDS.scheduled],
+  ])('Review Focus 5: a deep link to a %s article shows not-found with a way home', async (_label, id) => {
+    await open(`/news/${id}`);
+    expect(await screen.findByText(copy.news.notFound)).toBeTruthy();
+    expect(screen.queryByText('Tidak boleh tampil di aplikasi.')).toBeNull();
+    expect(screen.getByRole('button', { name: copy.common.backHome })).toBeTruthy();
   });
 });

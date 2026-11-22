@@ -1,6 +1,7 @@
 import { Stack, type ErrorBoundaryProps } from 'expo-router';
 
 import { SessionProvider } from '@/features/auth/session-context';
+import { NewsSourceProvider } from '@/features/news/news-source-context';
 import { copy } from '@/shared/copy/id';
 import { AppErrorFallback } from '@/shared/ui/AppErrorFallback';
 
@@ -9,12 +10,14 @@ export const unstable_settings = { initialRouteName: '(tabs)' };
 
 const RootLayout = () => (
   <SessionProvider>
-    <Stack screenOptions={{ headerBackTitle: copy.common.back }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="news/[id]" options={{ title: copy.news.detailTitle }} />
-      <Stack.Screen name="card" options={{ title: copy.card.title }} />
-      <Stack.Screen name="sign-in" options={{ title: copy.signIn.title }} />
-    </Stack>
+    <NewsSourceProvider>
+      <Stack screenOptions={{ headerBackTitle: copy.common.back }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="news/[id]" options={{ title: copy.news.detailTitle }} />
+        <Stack.Screen name="card" options={{ title: copy.card.title }} />
+        <Stack.Screen name="sign-in" options={{ title: copy.signIn.title }} />
+      </Stack>
+    </NewsSourceProvider>
   </SessionProvider>
 );
 
