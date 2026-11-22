@@ -25,6 +25,11 @@ export const copy = {
     detailTitle: 'Detail Berita',
     detailPlaceholder: 'Isi berita akan tersedia setelah modul Berita aktif.',
     notFound: 'Konten tidak ditemukan.',
+    loadFailed: 'Berita belum dapat dimuat.',
+    loadMore: 'Muat berita lainnya',
+    loadMoreFailed: 'Gagal memuat berita berikutnya. Coba lagi.',
+    imageUnavailable: 'Gambar tidak tersedia',
+    published: (date: string) => `Terbit ${date}`,
   },
   services: { heading: 'Katalog Layanan', empty: 'Belum ada layanan yang tersedia.' },
   account: {
