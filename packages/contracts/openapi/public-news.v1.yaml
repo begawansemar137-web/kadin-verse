@@ -1,0 +1,90 @@
+openapi: 3.1.0
+info:
+  title: KADIN Verse public news API
+  version: 0.1.0-proposed
+  description: >
+    PROPOSED contract (ADR-013, SPEC-005 §6, SDD §7 naming). Not a recovered legacy endpoint.
+    Only articles with status=published and publishedAt <= now are ever returned (BR-003).
+servers:
+  - url: /api/v1
+paths:
+  /public/news:
+    get:
+      operationId: listPublicNews
+      parameters:
+        - { name: cursor, in: query, required: false, schema: { type: string } }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+      responses:
+        '200':
+          description: Page of public article summaries, ordered by publishedAt desc, id desc (keyset).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, page]
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/ArticleSummary' } }
+                  page: { $ref: '#/components/schemas/PageInfo' }
+        '400': { $ref: '#/components/responses/Error' }
+  /public/news/{id}:
+    get:
+      operationId: getPublicNews
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, pattern: '^[A-Za-z0-9-]{1,64}$' } }
+      responses:
+        '200':
+          description: A public article.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/Article' }
+        '404': { $ref: '#/components/responses/Error' }
+components:
+  schemas:
+    ArticleImage:
+      type: object
+      required: [url, alt]
+      properties:
+        url: { type: string, pattern: '^https://' }
+        alt: { type: string, minLength: 1 }
+    ArticleSummary:
+      type: object
+      required: [id, title, summary, publishedAt]
+      properties:
+        id: { type: string, pattern: '^[A-Za-z0-9-]{1,64}$' }
+        title: { type: string, minLength: 1 }
+        summary: { type: string }
+        publishedAt: { type: string, format: date-time }
+        image: { oneOf: [{ $ref: '#/components/schemas/ArticleImage' }, { type: 'null' }] }
+    Article:
+      allOf:
+        - $ref: '#/components/schemas/ArticleSummary'
+        - type: object
+          required: [body]
+          properties:
+            body: { type: string, description: Plain text; paragraphs separated by a blank line. }
+    PageInfo:
+      type: object
+      required: [nextCursor, limit]
+      properties:
+        nextCursor: { type: [string, 'null'] }
+        limit: { type: integer }
+  responses:
+    Error:
+      description: Standard error envelope.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error:
+                type: object
+                required: [code, message, requestId]
+                properties:
+                  code: { type: string }
+                  message: { type: string }
+                  requestId: { type: string }
