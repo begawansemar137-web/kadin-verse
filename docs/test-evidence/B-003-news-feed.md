@@ -30,7 +30,31 @@ Deviations recorded during execution (ledger rulings):
 | Lint | `pnpm lint` | exit 0, no problems |
 | Unit, component and journey tests | `pnpm exec jest` | Run 1: `1 failed, 233 passed, 234 total`. The failure was a 5 s timeout in `ArticleImageView › labels the image with its alt text`, while that file took 63 s under parallel load on the external drive; the test passed in isolation. Run 2: `Tests: 234 passed, 234 total`, `Test Suites: 25 passed, 25 total`, exit 0. |
 
-The run-1 timeout is recorded as a load flake, not fixed. The assertion was not weakened and the timeout was not raised. If it recurs in CI, the fix is to investigate the first `Image` render cost in that file, not to raise the limit.
+**Correction after the final review:** the 5 s timeout is not one flaky test. The reviewer reproduced it on this machine for the first test of several files, both in parallel (2/93 failed) and serially with `-i` (3/93 failed). It is a cold-start cost of loading modules from the external drive. GitHub CI on a fresh runner passed the same commit in 47 s (run 45041821583), so it is local only. No test was weakened and no timeout was raised. If it ever shows in CI, the fix is a per-file warm-up or an explicit, documented `testTimeout`.
+
+## Final review and fix pass
+
+An independent reviewer on the most capable model reviewed `09dfc6c..3e11973`. It found 0 Critical, 4 Important and 9 Minor issues.
+
+| Finding | Decision | Evidence |
+|---|---|---|
+| I-1 The "after unmount" test passed even without the stale-response guard (React 19 no longer warns) | Fixed | New tests in `use-news-feed.test.tsx` and `use-article.test.tsx`: "Review Focus 4: a stale … response cannot overwrite a newer one". Mutation check: with the `gen !== generation.current` guards deleted, both fail (`2 failed`); with the guards restored, both pass. The unmount test is kept as a smoke test only. |
+| I-2 First test per file times out after 5 s | Ruled local-only | See the correction above; CI green on a fresh runner. |
+| I-3 The parser accepted only `Z` with 0–3 fractional digits; the contract allowed any `date-time` | Fixed | The parser accepts any fractional precision with `Z`, normalises it to milliseconds, and rejects offsets. The contract now has a matching `pattern` and documents the 400, 404 and 500 responses. `dto.test.ts` › "publishedAt …": microseconds RED (`1 failed, 20 passed`) → GREEN. |
+| I-4 The feed never refreshes during a session (no pull-to-refresh or refetch on focus) | Ruled, deferred to PO/UX | The spec is silent. It needs a UX pattern and a change to the shared `Screen`. Only synthetic static content exists today. Cost if wrong: once a real CMS exists, a long-running session shows a stale feed until restart. |
+
+Gates after the fix pass (from `apps/mobile`): `pnpm typecheck` exit 0; `pnpm lint` exit 0; `pnpm exec jest` → `Tests: 239 passed, 239 total`, `Test Suites: 25 passed, 25 total`, exit 0.
+
+Deferred minors (not fixed; for the next pass or a PO/UX decision):
+- M-1 No MockBadge on the not-found screen.
+- M-2 The load-more button has no busy state or spinner.
+- M-3 A failed load-more is not announced on iOS (VoiceOver). It needs `announceForAccessibility`.
+- M-4 The card label omits the summary.
+- M-5 Paragraphs split only on `\n\n`, not on `\r\n` or whitespace-only lines.
+- M-6 A change of `source` or `id` does not reset hook state. The provider keeps `source` stable.
+- M-7 The detail parser does not check that the returned id matches the requested id.
+- M-8 The domain layer imports the id pattern from navigation.
+- M-9 No end-to-end test of a malformed 200 response reaching the error and Retry state.
 
 ## Acceptance mapping
 

@@ -25,7 +25,8 @@ paths:
                 properties:
                   data: { type: array, items: { $ref: '#/components/schemas/ArticleSummary' } }
                   page: { $ref: '#/components/schemas/PageInfo' }
-        '400': { $ref: '#/components/responses/Error' }
+        '400': { $ref: '#/components/responses/Error', description: 'INVALID_CURSOR or INVALID_LIMIT.' }
+        '500': { $ref: '#/components/responses/Error' }
   /public/news/{id}:
     get:
       operationId: getPublicNews
@@ -41,7 +42,8 @@ paths:
                 required: [data]
                 properties:
                   data: { $ref: '#/components/schemas/Article' }
-        '404': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error', description: 'NOT_FOUND. Also returned for non-public articles.' }
+        '500': { $ref: '#/components/responses/Error' }
 components:
   schemas:
     ArticleImage:
@@ -57,7 +59,11 @@ components:
         id: { type: string, pattern: '^[A-Za-z0-9-]{1,64}$' }
         title: { type: string, minLength: 1 }
         summary: { type: string }
-        publishedAt: { type: string, format: date-time }
+        publishedAt:
+          type: string
+          format: date-time
+          description: UTC only, with a trailing Z (SPEC-005). Any fractional precision; clients keep milliseconds.
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$'
         image: { oneOf: [{ $ref: '#/components/schemas/ArticleImage' }, { type: 'null' }] }
     Article:
       allOf:

@@ -99,7 +99,24 @@ describe('useNewsFeed', () => {
     await waitFor(() => expect(result.current.list).toEqual({ status: 'empty' }));
   });
 
-  it('Review Focus 4: ignores a response that lands after unmount', async () => {
+  it('Review Focus 4: a stale first-page response cannot overwrite a newer one', async () => {
+    const pending: ((r: Awaited<ReturnType<NewsSource['listPublished']>>) => void)[] = [];
+    const source: NewsSource = {
+      isMock: true,
+      listPublished: () => new Promise((r) => pending.push(r)),
+      getPublished: async () => ({ ok: false, reason: 'not-found' }),
+    };
+    const item = (id: string) => ({ id, title: id, summary: '', publishedAt: '2026-11-01T03:00:00.000Z', image: null });
+    const { result } = await renderHook(() => useNewsFeed(source));
+    await act(async () => result.current.retry());
+    expect(pending).toHaveLength(2);
+    await act(async () => pending[1]?.({ ok: true, value: { items: [item('newer')], nextCursor: null } }));
+    await act(async () => pending[0]?.({ ok: true, value: { items: [item('stale')], nextCursor: null } }));
+    const list = result.current.list;
+    expect(list.status === 'success' && list.data.map((a) => a.id)).toEqual(['newer']);
+  });
+
+  it('smoke: unmounting with a request in flight does not throw', async () => {
     const pending = pendingSource();
     const spy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
     const { unmount } = await renderHook(() => useNewsFeed(pending.source));

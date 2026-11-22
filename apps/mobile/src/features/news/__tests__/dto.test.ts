@@ -42,6 +42,22 @@ describe('parseArticleSummaryPage', () => {
   });
 });
 
+describe('publishedAt (contract: UTC ISO-8601, SPEC-005)', () => {
+  it('accepts microsecond precision from the server and normalises it to milliseconds', () => {
+    const parsed = parseArticleSummaryPage(page([{ ...summary, publishedAt: '2026-11-01T03:00:00.123456Z' }]));
+    expect(parsed?.items[0]?.publishedAt).toBe('2026-11-01T03:00:00.123Z');
+  });
+
+  it('accepts a timestamp without fractional seconds', () => {
+    const parsed = parseArticleSummaryPage(page([{ ...summary, publishedAt: '2026-11-01T03:00:00Z' }]));
+    expect(parsed?.items[0]?.publishedAt).toBe('2026-11-01T03:00:00Z');
+  });
+
+  it('rejects a non-UTC offset, which the contract does not allow', () => {
+    expect(parseArticleSummaryPage(page([{ ...summary, publishedAt: '2026-11-01T10:00:00+07:00' }]))).toBeNull();
+  });
+});
+
 describe('parseArticleDetail', () => {
   it('accepts a detail envelope with a body', () => {
     expect(parseArticleDetail({ data: { ...summary, body: 'Isi.' } })).toEqual({ ...summary, body: 'Isi.' });
